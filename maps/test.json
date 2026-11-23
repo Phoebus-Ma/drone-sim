@@ -1,0 +1,15 @@
+{
+    "meta": {
+        "name": "两箱解耦测试场",
+        "version": 1,
+        "bounds": { "x": [-50, 50], "z": [-30, 100] },
+        "spawn": { "position": [0, 2, 0], "rotation": 0 },
+        "wind": { "direction": 0, "strength": 0 }
+    },
+    "terrain": { "type": "flat", "color": "#547453" },
+    "objects": [
+        { "type": "box", "position": [-4, 3, 25], "rotation": [0, 0, 0], "size": [4, 6, 4], "color": "#e6a149", "collidable": true },
+        { "type": "box", "position": [4, 5, 40], "rotation": [0, 0.3, 0], "size": [4, 10, 4], "color": "#6f9fc4", "collidable": true }
+    ],
+    "checkpoints": []
+}

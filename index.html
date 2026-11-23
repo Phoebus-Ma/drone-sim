@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>无人机飞行模拟器 V1</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="css/style.css">
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+
+<body>
+    <div id="viewport"></div>
+
+    <div id="hud" hidden>
+        <section class="hud-panel hud-flight">
+            <div class="hud-title" id="hud-map-name"></div>
+            <div class="hud-row"><span class="hud-label">高度</span><span class="hud-value"
+                    id="hud-altitude">0.0</span><span class="hud-unit">m</span></div>
+            <div class="hud-row"><span class="hud-label">水平速度</span><span class="hud-value"
+                    id="hud-hspeed">0.0</span><span class="hud-unit">m/s</span></div>
+            <div class="hud-row"><span class="hud-label">垂直速度</span><span class="hud-value"
+                    id="hud-vspeed">+0.0</span><span class="hud-unit">m/s</span></div>
+            <div class="hud-row"><span class="hud-label">航向</span><span class="hud-value"
+                    id="hud-heading">000</span><span class="hud-unit">°</span></div>
+        </section>
+
+        <section class="hud-panel hud-systems">
+            <div class="battery" id="hud-battery">
+                <div class="battery-head">
+                    <span class="hud-label">电量</span>
+                    <span class="battery-warning">低电量</span>
+                    <span class="battery-text" id="hud-battery-text">100%</span>
+                </div>
+                <div class="battery-bar">
+                    <div class="battery-fill" id="hud-battery-fill"></div>
+                </div>
+            </div>
+
+            <div class="instruments">
+                <div class="throttle">
+                    <div class="throttle-bar">
+                        <div class="throttle-fill" id="hud-throttle-fill"></div>
+                        <div class="throttle-hover"></div>
+                    </div>
+                    <span class="hud-label">油门</span>
+                </div>
+                <div class="attitude-wrap">
+                    <div class="attitude">
+                        <div class="attitude-horizon" id="hud-horizon"></div>
+                        <div class="attitude-reticle"></div>
+                    </div>
+                    <div class="attitude-text" id="hud-attitude-text">俯仰 0° 横滚 0°</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="hud-messages">
+            <div class="msg msg-danger" id="msg-crash" hidden>坠机！按 R 重置</div>
+            <div class="msg msg-danger" id="msg-nopower" hidden>电量耗尽 · 失去动力</div>
+            <div class="msg msg-warn" id="msg-oob" hidden>已离开飞行区域</div>
+            <div class="msg msg-info" id="msg-collision" hidden>碰撞！</div>
+        </div>
+    </div>
+
+    <div id="overlay" class="overlay loading">
+        <div class="overlay-card">
+            <div class="spinner"></div>
+            <h1 id="overlay-title">加载中…</h1>
+            <div id="overlay-detail">正在初始化</div>
+        </div>
+    </div>
+
+    <footer id="help">
+        <span><kbd>W</kbd>/<kbd>S</kbd> 油门升降</span>
+        <span><kbd>↑</kbd>/<kbd>↓</kbd> 俯仰（前进/后退）</span>
+        <span><kbd>←</kbd>/<kbd>→</kbd> 横滚（左移/右移）</span>
+        <span><kbd>A</kbd>/<kbd>D</kbd> 偏航（左转/右转）</span>
+        <span><kbd>R</kbd> 重置</span>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

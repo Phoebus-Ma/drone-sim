@@ -1,0 +1,43 @@
+{
+    "meta": {
+        "name": "山谷试飞场",
+        "version": 1,
+        "bounds": { "x": [-150, 150], "z": [-60, 240] },
+        "spawn": { "position": [0, 2, 0], "rotation": 0 },
+        "wind": { "direction": 0, "strength": 0 }
+    },
+    "terrain": {
+        "type": "flat",
+        "color": "#4a7c4e"
+    },
+    "objects": [
+        { "type": "box", "position": [-100, 12, 90], "rotation": [0, 0, -0.35], "size": [50, 40, 320], "color": "#6d5c47", "collidable": true },
+        { "type": "box", "position": [100, 12, 90], "rotation": [0, 0, 0.35], "size": [50, 40, 320], "color": "#6d5c47", "collidable": true },
+
+        { "type": "cylinder", "position": [-6, 7, 28], "rotation": [0, 0, 0], "size": [1.5, 14], "color": "#8d6e63", "collidable": true },
+        { "type": "box", "position": [7, 9, 34], "rotation": [0, 0.4, 0], "size": [3, 18, 3], "color": "#9e9e9e", "collidable": true },
+
+        { "type": "box", "position": [0, 4.5, 58], "rotation": [0, 0, 0], "size": [60, 9, 2], "color": "#b5523b", "collidable": true },
+
+        { "type": "cylinder", "position": [4, 10, 75], "rotation": [0, 0, 0], "size": [1.2, 20], "color": "#78909c", "collidable": true },
+        { "type": "box", "position": [-5, 6, 82], "rotation": [0, 0.8, 0], "size": [2.5, 12, 2.5], "color": "#a1887f", "collidable": true },
+
+        { "type": "box", "position": [-14.5, 2.5, 102], "rotation": [0, 0, 0], "size": [21, 5, 1.5], "color": "#f2a900", "collidable": true },
+        { "type": "box", "position": [14.5, 2.5, 102], "rotation": [0, 0, 0], "size": [21, 5, 1.5], "color": "#f2a900", "collidable": true },
+        { "type": "box", "position": [0, 13.5, 102], "rotation": [0, 0, 0], "size": [50, 17, 1.5], "color": "#607d8b", "collidable": true },
+
+        { "type": "box", "position": [8, 7.5, 120], "rotation": [0, 0, 0], "size": [3, 15, 3], "color": "#9e9e9e", "collidable": true },
+        { "type": "cylinder", "position": [-7, 9, 126], "rotation": [0, 0, 0], "size": [2, 18], "color": "#8d6e63", "collidable": true },
+        { "type": "box", "position": [-1, 8, 133], "rotation": [0, 0, 0.45], "size": [1.5, 18, 1.5], "color": "#5d4037", "collidable": true },
+
+        { "type": "box", "position": [0, 6, 160], "rotation": [0, 0, 0], "size": [60, 12, 2], "color": "#b5523b", "collidable": true },
+
+        { "type": "box", "position": [0, 0.15, 182], "rotation": [0, 0, 0], "size": [8, 0.3, 8], "color": "#eeeeee", "collidable": true },
+        { "type": "torus", "position": [0, 7, 182], "rotation": [1.5708, 0, 0], "size": [3, 0.25], "color": "#ff9800", "collidable": false }
+    ],
+    "checkpoints": [
+        { "position": [0, 8, 45], "radius": 5 },
+        { "position": [0, 3, 92], "radius": 2.5 },
+        { "position": [0, 12, 145], "radius": 4 }
+    ]
+}
