@@ -11,6 +11,7 @@ body {
     margin: 0;
     height: 100%;
     overflow: hidden;
+    overscroll-behavior: none;
     background: #0d1117;
     color: #e8eef5;
     font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
@@ -24,6 +25,7 @@ body {
 
 #viewport canvas {
     display: block;
+    touch-action: none; /* 禁止触摸拖动页面 / 缩放画布 */
 }
 
 /* ---------------- HUD ---------------- */
@@ -403,4 +405,299 @@ kbd {
     font-family: inherit;
     font-size: 12px;
     text-align: center;
+}
+
+/* ---------------- 移动端双摇杆（V2） ---------------- */
+
+.touch-controls {
+    --stick-size: clamp(104px, 30vmin, 148px);
+    --edge-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none; /* 只有摇杆/按钮本身接收触摸，不遮挡中心视野 */
+    touch-action: none;
+    -webkit-touch-callout: none;
+}
+
+.touch-controls .stick {
+    position: absolute;
+    bottom: var(--edge-bottom);
+    width: var(--stick-size);
+    height: var(--stick-size);
+    pointer-events: auto;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.touch-controls .stick-left {
+    left: max(16px, env(safe-area-inset-left, 0px));
+}
+
+.touch-controls .stick-right {
+    right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.stick-base {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.26);
+    background:
+        radial-gradient(circle at 50% 42%,
+            rgba(127, 216, 255, 0.1),
+            transparent 62%),
+        rgba(10, 16, 24, 0.32);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(2px);
+    transition: border-color 0.15s ease;
+}
+
+.stick-cross {
+    position: absolute;
+    inset: 0;
+}
+
+.stick-cross::before,
+.stick-cross::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.stick-cross::before {
+    width: 1px;
+    height: 62%;
+    transform: translate(-50%, -50%);
+}
+
+.stick-cross::after {
+    width: 62%;
+    height: 1px;
+    transform: translate(-50%, -50%);
+}
+
+.stick-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 40%;
+    height: 40%;
+    margin: -20% 0 0 -20%;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    background: radial-gradient(circle at 50% 35%,
+        rgba(255, 255, 255, 0.34),
+        rgba(255, 255, 255, 0.16));
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    transition:
+        background 0.12s ease,
+        border-color 0.12s ease,
+        box-shadow 0.12s ease;
+    will-change: transform;
+    pointer-events: none;
+}
+
+.stick.active .stick-base {
+    border-color: rgba(127, 216, 255, 0.6);
+}
+
+.stick.active .stick-knob {
+    border-color: #7fd8ff;
+    background: radial-gradient(circle at 50% 35%,
+        rgba(127, 216, 255, 0.5),
+        rgba(127, 216, 255, 0.24));
+    box-shadow: 0 0 16px rgba(127, 216, 255, 0.45);
+}
+
+.stick-label {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(232, 238, 245, 0.6);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.touch-reset {
+    position: absolute;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(var(--edge-bottom) + var(--stick-size) + 24px);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(10, 16, 24, 0.55);
+    color: #e8eef5;
+    font: inherit;
+    font-size: 12px;
+    pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    backdrop-filter: blur(2px);
+}
+
+.touch-reset:active {
+    background: rgba(127, 216, 255, 0.25);
+    border-color: #7fd8ff;
+}
+
+.touch-reset-icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* 触摸设备不显示键盘说明（空间留给摇杆） */
+body.touch-mode #help {
+    display: none;
+}
+
+/* ---------------- 小屏幕 HUD 适配（竖屏 / 横屏） ---------------- */
+
+@media (max-width: 860px), (max-height: 520px) {
+    .hud-panel {
+        top: 8px;
+        padding: 8px 10px;
+        border-radius: 8px;
+    }
+
+    .hud-flight {
+        left: 8px;
+        min-width: 0;
+        max-width: calc(50vw - 12px);
+    }
+
+    .hud-systems {
+        right: 8px;
+        width: auto;
+        max-width: calc(50vw - 12px);
+    }
+
+    .hud-title {
+        font-size: 11px;
+        margin-bottom: 4px;
+        padding-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .hud-row {
+        line-height: 1.45;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .hud-row .hud-label {
+        width: 46px;
+    }
+
+    .hud-label,
+    .hud-unit {
+        font-size: 10px;
+    }
+
+    .hud-value {
+        font-size: 15px;
+        min-width: 38px;
+    }
+
+    .battery-head {
+        margin-bottom: 4px;
+        gap: 4px;
+    }
+
+    .battery-text {
+        font-size: 14px;
+    }
+
+    .battery-warning {
+        font-size: 10px;
+    }
+
+    .battery-bar {
+        height: 7px;
+    }
+
+    .instruments {
+        margin-top: 8px;
+        gap: 8px;
+    }
+
+    .attitude {
+        width: 76px;
+        height: 76px;
+        border-width: 1.5px;
+    }
+
+    .attitude-text {
+        font-size: 10px;
+    }
+
+    .attitude-reticle {
+        width: 42px;
+        margin-left: -21px;
+    }
+
+    .throttle-bar {
+        width: 10px;
+        height: 76px;
+    }
+
+    .throttle {
+        gap: 2px;
+    }
+
+    .hud-messages {
+        top: 34%;
+        gap: 6px;
+    }
+
+    .msg {
+        padding: 7px 14px;
+        font-size: 15px;
+        letter-spacing: 1px;
+    }
+
+    .msg-danger {
+        font-size: 22px;
+    }
+
+    .msg-info {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .attitude {
+        width: 66px;
+        height: 66px;
+    }
+
+    .throttle-bar {
+        height: 66px;
+    }
+
+    .hud-value {
+        font-size: 14px;
+        min-width: 34px;
+    }
+
+    .hud-row .hud-label {
+        width: 42px;
+    }
+}
+
+@media (max-height: 480px) {
+    .hud-messages {
+        top: 18%;
+    }
 }

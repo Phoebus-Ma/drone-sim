@@ -14,6 +14,7 @@ import {
     isOutOfBounds,
 } from "./physics.js";
 import { Controls, KeyboardInputSource } from "./controls.js";
+import { TouchInputSource } from "./touchControls.js";
 import { Hud, showLoading, showError, hideOverlay } from "./hud.js";
 
 const DEFAULT_MAP = "map-valley";
@@ -96,7 +97,7 @@ function startSimulation(mapData, Engine) {
     const hud = new Hud();
     const controls = new Controls();
     controls.addSource(new KeyboardInputSource(window));
-    // 未来：controls.addSource(new TouchJoystickSource(...));
+    controls.addSource(new TouchInputSource()); // 无触摸设备时自动保持隐藏
 
     const STEP = PHYSICS_CONFIG.fixedTimeStep;
     let state = createInitialState(spawn);
