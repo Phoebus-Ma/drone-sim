@@ -1,0 +1,12 @@
+[
+    {
+        "id": "map-valley",
+        "name": "山谷试飞场",
+        "cover": null
+    },
+    {
+        "id": "test",
+        "name": "两箱解耦测试场",
+        "cover": null
+    }
+]

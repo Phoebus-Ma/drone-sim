@@ -397,14 +397,15 @@ export class Engine {
         window.addEventListener("resize", this._onResize);
     }
 
-    /** 由 MapData 生成整个场景（地图元素全部来自数据） */
+    /** 由 MapData 生成整个场景（地图元素全部来自数据；切换地图时先释放旧场景资源） */
     buildMap(mapData) {
-        this.mapRoot.clear();
-        this.checkpoints = [];
-
         const terrainBuilder = TERRAIN_BUILDERS[mapData.terrain.type];
         if (!terrainBuilder)
             throw new Error(`渲染器不支持的地形类型：${mapData.terrain.type}`);
+
+        // 校验通过后再释放旧场景，避免新地图不可用时把旧场景也毁掉
+        this._disposeMap();
+        this.checkpoints = [];
 
         this.mapRoot.add(
             terrainBuilder(mapData.terrain, mapData.meta.bounds, this.renderer),
@@ -422,6 +423,12 @@ export class Engine {
             this.checkpoints.push(ring);
             this.mapRoot.add(ring);
         }
+    }
+
+    /** 释放上一张地图的 GPU 资源（几何体 / 材质 / 纹理），避免连续切换导致内存累积 */
+    _disposeMap() {
+        disposeObject3D(this.mapRoot);
+        this.mapRoot.clear();
     }
 
     /** 相机立即对齐到无人机后方（初始化 / R 重置） */
@@ -581,4 +588,29 @@ export class Engine {
         for (const ring of this.checkpoints)
             ring.material.emissiveIntensity = pulse;
     }
+}
+
+/**
+ * 递归释放 Object3D 子树持有的几何体、材质与纹理。
+ * 只用于可丢弃的地图场景（mapRoot），不会触碰无人机等常驻资源。
+ */
+function disposeObject3D(root) {
+    root.traverse((obj) => {
+        if (obj.geometry)
+            obj.geometry.dispose();
+
+        const materials = Array.isArray(obj.material)
+            ? obj.material
+            : obj.material
+              ? [obj.material]
+              : [];
+
+        for (const material of materials) {
+            for (const value of Object.values(material)) {
+                if (value && value.isTexture)
+                    value.dispose();
+            }
+            material.dispose();
+        }
+    });
 }
