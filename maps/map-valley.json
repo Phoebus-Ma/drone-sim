@@ -1,39 +1,115 @@
 {
     "meta": {
         "name": "山谷试飞场",
-        "version": 1,
+        "version": 2,
         "bounds": { "x": [-150, 150], "z": [-60, 240] },
         "spawn": { "position": [0, 2, 0], "rotation": 0 },
-        "wind": { "direction": 0, "strength": 0 }
+        "wind": { "direction": 0, "strength": 0 },
+        "fogDensity": 0.0024,
+        "palette": {
+            "sky": "#6fa3d8",
+            "horizon": "#f6dcae",
+            "grass": "#94b874",
+            "rock": "#b08d76",
+            "accent": "#e0705a"
+        }
     },
     "terrain": {
         "type": "flat",
-        "color": "#4a7c4e"
+        "color": "#94b874",
+        "relief": 1.4,
+        "layers": [
+            { "shape": "disc", "center": [-46, 118], "radius": 38, "color": "#f6dcae", "feather": 8, "edge": 5 },
+            { "shape": "disc", "center": [-46, 118], "radius": 30, "color": "#6fa3d8", "feather": 3, "edge": 3, "water": true },
+            { "shape": "disc", "center": [44, 40], "radius": 21, "color": "#f6dcae", "feather": 7, "edge": 4 },
+            { "shape": "disc", "center": [44, 40], "radius": 15, "color": "#6fa3d8", "feather": 3, "edge": 2, "water": true },
+            { "shape": "disc", "center": [-34, 188], "radius": 18, "color": "#f6dcae", "feather": 7, "edge": 4 },
+            { "shape": "disc", "center": [-34, 188], "radius": 12, "color": "#6fa3d8", "feather": 3, "edge": 2, "water": true }
+        ]
     },
     "objects": [
-        { "type": "box", "position": [-100, 12, 90], "rotation": [0, 0, -0.35], "size": [50, 40, 320], "color": "#6d5c47", "collidable": true },
-        { "type": "box", "position": [100, 12, 90], "rotation": [0, 0, 0.35], "size": [50, 40, 320], "color": "#6d5c47", "collidable": true },
+        { "note": "山谷两侧的台地（地形）", "type": "box", "position": [-118, 26, -10], "rotation": [0, 0.12, 0.24], "size": [64, 52, 140], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [-112, 20, 100], "rotation": [0, -0.08, 0.22], "size": [60, 40, 130], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [-116, 24, 205], "rotation": [0, 0.15, 0.26], "size": [62, 48, 120], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [118, 26, -10], "rotation": [0, -0.12, -0.24], "size": [64, 52, 140], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [112, 20, 100], "rotation": [0, 0.08, -0.22], "size": [60, 40, 130], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [116, 24, 205], "rotation": [0, -0.15, -0.26], "size": [62, 48, 120], "color": "#b08d76", "collidable": true },
 
-        { "type": "cylinder", "position": [-6, 7, 28], "rotation": [0, 0, 0], "size": [1.5, 14], "color": "#8d6e63", "collidable": true },
-        { "type": "box", "position": [7, 9, 34], "rotation": [0, 0.4, 0], "size": [3, 18, 3], "color": "#9e9e9e", "collidable": true },
+        { "note": "障碍 1-2：入口门柱，一矮一高、左右错位", "type": "cylinder", "position": [-10, 6, 26], "rotation": [0, 0, 0], "size": [1.2, 12], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [11, 8, 34], "rotation": [0, 0.4, 0], "size": [2.5, 16, 2.5], "color": "#b08d76", "collidable": true },
 
-        { "type": "box", "position": [0, 4.5, 58], "rotation": [0, 0, 0], "size": [60, 9, 2], "color": "#b5523b", "collidable": true },
+        { "note": "障碍 3：穿过检查环后需爬越的低墙", "type": "box", "position": [0, 3.5, 58], "rotation": [0, 0, 0], "size": [56, 7, 2.5], "color": "#e0705a", "collidable": true },
 
-        { "type": "cylinder", "position": [4, 10, 75], "rotation": [0, 0, 0], "size": [1.2, 20], "color": "#78909c", "collidable": true },
-        { "type": "box", "position": [-5, 6, 82], "rotation": [0, 0.8, 0], "size": [2.5, 12, 2.5], "color": "#a1887f", "collidable": true },
+        { "note": "障碍 4-5：高塔与斜柱形成夹缝", "type": "cylinder", "position": [6, 11, 74], "rotation": [0, 0, 0], "size": [1.3, 22], "color": "#b08d76", "collidable": true },
+        { "type": "box", "position": [-6, 7, 82], "rotation": [0, 0.8, 0], "size": [2.5, 14, 2.5], "color": "#b08d76", "collidable": true },
 
-        { "type": "box", "position": [-14.5, 2.5, 102], "rotation": [0, 0, 0], "size": [21, 5, 1.5], "color": "#f2a900", "collidable": true },
-        { "type": "box", "position": [14.5, 2.5, 102], "rotation": [0, 0, 0], "size": [21, 5, 1.5], "color": "#f2a900", "collidable": true },
-        { "type": "box", "position": [0, 13.5, 102], "rotation": [0, 0, 0], "size": [50, 17, 1.5], "color": "#607d8b", "collidable": true },
+        { "note": "障碍 6-8：门洞，需贴地穿过中央 8m 宽 × 6m 高的洞口", "type": "box", "position": [-15, 3, 102], "rotation": [0, 0, 0], "size": [22, 6, 2], "color": "#e0705a", "collidable": true },
+        { "type": "box", "position": [15, 3, 102], "rotation": [0, 0, 0], "size": [22, 6, 2], "color": "#e0705a", "collidable": true },
+        { "type": "box", "position": [0, 14, 102], "rotation": [0, 0, 0], "size": [52, 16, 2], "color": "#b08d76", "collidable": true },
 
-        { "type": "box", "position": [8, 7.5, 120], "rotation": [0, 0, 0], "size": [3, 15, 3], "color": "#9e9e9e", "collidable": true },
-        { "type": "cylinder", "position": [-7, 9, 126], "rotation": [0, 0, 0], "size": [2, 18], "color": "#8d6e63", "collidable": true },
-        { "type": "box", "position": [-1, 8, 133], "rotation": [0, 0, 0.45], "size": [1.5, 18, 1.5], "color": "#5d4037", "collidable": true },
+        { "note": "障碍 9-11：错落柱群，末尾一根倾斜柱封住中线", "type": "box", "position": [9, 8, 118], "rotation": [0, 0, 0], "size": [3, 16, 3], "color": "#b08d76", "collidable": true },
+        { "type": "cylinder", "position": [-8, 10, 126], "rotation": [0, 0, 0], "size": [2, 20], "color": "#e0705a", "collidable": true },
+        { "type": "box", "position": [-1, 9, 134], "rotation": [0, 0, 0.45], "size": [1.5, 18, 1.5], "color": "#b08d76", "collidable": true },
 
-        { "type": "box", "position": [0, 6, 160], "rotation": [0, 0, 0], "size": [60, 12, 2], "color": "#b5523b", "collidable": true },
+        { "note": "障碍 12：终点前的高墙", "type": "box", "position": [0, 6, 160], "rotation": [0, 0, 0], "size": [56, 12, 2.5], "color": "#e0705a", "collidable": true },
 
-        { "type": "box", "position": [0, 0.15, 182], "rotation": [0, 0, 0], "size": [8, 0.3, 8], "color": "#eeeeee", "collidable": true },
-        { "type": "torus", "position": [0, 7, 182], "rotation": [1.5708, 0, 0], "size": [3, 0.25], "color": "#ff9800", "collidable": false }
+        { "note": "降落坪 + 目标环", "type": "box", "position": [0, 0.15, 182], "rotation": [0, 0, 0], "size": [8, 0.3, 8], "color": "#f6dcae", "roughness": 0.6, "collidable": true },
+        { "type": "torus", "position": [0, 7, 182], "rotation": [1.5708, 0, 0], "size": [3, 0.25], "color": "#e0705a", "emissive": "#e0705a", "emissiveIntensity": 1.2, "collidable": false },
+
+        { "note": "发光环塔：航线尽头的视觉锚点", "type": "cylinder", "position": [0, 18, 214], "rotation": [0, 0, 0], "size": [2.2, 36], "color": "#b08d76", "collidable": true },
+        { "type": "torus", "position": [0, 30, 214], "rotation": [1.5708, 0, 0], "size": [5.5, 0.4], "color": "#e0705a", "emissive": "#e0705a", "emissiveIntensity": 1.6, "collidable": false },
+        { "type": "torus", "position": [0, 34, 214], "rotation": [1.5708, 0, 0], "size": [4.2, 0.4], "color": "#e0705a", "emissive": "#e0705a", "emissiveIntensity": 1.6, "collidable": false },
+        { "type": "torus", "position": [0, 38, 214], "rotation": [1.5708, 0, 0], "size": [3, 0.4], "color": "#e0705a", "emissive": "#e0705a", "emissiveIntensity": 1.6, "collidable": false }
+    ],
+    "decorations": [
+        {
+            "type": "tree", "color": "#94b874", "secondaryColor": "#b08d76",
+            "count": 150, "seed": 7, "scale": [0.9, 1.7], "clearance": 9, "shade": [0.68, 0.9],
+            "areas": [
+                { "shape": "rect", "center": [-58, 110], "size": [60, 330] },
+                { "shape": "rect", "center": [58, 110], "size": [60, 330] }
+            ]
+        },
+        {
+            "note": "航线两侧的小树，近景提供速度感",
+            "type": "tree", "color": "#94b874", "secondaryColor": "#b08d76",
+            "count": 36, "seed": 21, "scale": [0.55, 0.9], "clearance": 14, "shade": [0.72, 0.95],
+            "areas": [
+                { "shape": "rect", "center": [-20, 70], "size": [24, 130] },
+                { "shape": "rect", "center": [20, 70], "size": [24, 130] }
+            ]
+        },
+        {
+            "note": "出生点身后的树林",
+            "type": "tree", "color": "#94b874", "secondaryColor": "#b08d76",
+            "count": 50, "seed": 23, "scale": [1.2, 2.0], "clearance": 10, "shade": [0.66, 0.88],
+            "areas": [ { "shape": "rect", "center": [0, -42], "size": [220, 32] } ]
+        },
+        {
+            "type": "rock", "color": "#b08d76",
+            "count": 70, "seed": 33, "scale": [0.5, 2.2], "clearance": 6, "shade": [0.85, 1.1],
+            "areas": [
+                { "shape": "rect", "center": [-62, 110], "size": [52, 330] },
+                { "shape": "rect", "center": [62, 110], "size": [52, 330] },
+                { "shape": "rect", "center": [0, -45], "size": [200, 26] }
+            ]
+        },
+        {
+            "note": "地图外围的低模远山",
+            "type": "hill", "color": "#b08d76",
+            "count": 30, "seed": 5, "scale": [60, 130], "shade": [0.9, 1.05],
+            "areas": [
+                { "shape": "rect", "center": [0, 450], "size": [900, 140] },
+                { "shape": "rect", "center": [0, -260], "size": [900, 140] },
+                { "shape": "rect", "center": [400, 100], "size": [200, 700] },
+                { "shape": "rect", "center": [-400, 100], "size": [200, 700] }
+            ]
+        },
+        {
+            "type": "cloud", "color": "#f6dcae",
+            "count": 22, "seed": 9, "scale": [10, 22], "altitude": [80, 130], "drift": 1.2,
+            "areas": [ { "shape": "rect", "center": [0, 120], "size": [1200, 1000] } ]
+        }
     ],
     "checkpoints": [
         { "position": [0, 8, 45], "radius": 5 },

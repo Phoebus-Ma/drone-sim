@@ -3,17 +3,32 @@
  *
  * 职责：把 MapData “解析数据 → 生成对象”，并把物理状态（纯数据）同步到可视对象。
  * 本文件不包含任何地图元素的位置、颜色、数量；下面的 RENDER_CONFIG 只是通用渲染风格参数。
+ *
+ * 视觉管线：
+ *   - 渐变天空球（materials.js）+ FogExp2，雾色 = 地平线色，远处自然融入天空
+ *   - 半球光 + 带柔和阴影（PCFSoft）的主方向光，阴影相机跟随无人机并对齐纹素网格
+ *   - 全部 PBR（MeshStandardMaterial / flatShading），天空烘焙成 PMREM 环境贴图提供反射
+ *   - ACES 色调映射；地图色板（meta.palette）决定天空 / 雾 / 灯光颜色
  */
 
 import * as THREE from "three";
+import {
+    createLook,
+    createStandardMaterial,
+    createSky,
+    applySkyLook,
+    renderEnvironment,
+} from "./materials.js";
+import { buildFlatTerrain, createLayout } from "./terrain.js";
+import { buildDecorations } from "./decorations.js";
+
+/** 触屏设备（手机 / 平板）：降低像素比、阴影贴图与地面纹理尺寸以保证 30fps+ */
+const IS_MOBILE = window.matchMedia("(pointer: coarse)").matches;
 
 const RENDER_CONFIG = {
-    maxPixelRatio: 2,
-    sky: "#a9cfee",
-    fog: { near: 140, far: 560 },
-    groundMargin: 400, // 地面平面在 bounds 外额外延伸的距离（m）
-    groundTileSize: 10, // 地面网格纹理每格尺寸（m）
-    boundsLineColor: "#ffd54f",
+    maxPixelRatio: IS_MOBILE ? 1.5 : 2,
+    exposure: 1.0, // ACES 曝光
+    fog: { density: 0.0026 }, // FogExp2 默认密度，地图可用 meta.fogDensity 覆盖
     camera: {
         fov: 65,
         near: 0.1,
@@ -28,7 +43,16 @@ const RENDER_CONFIG = {
         lookSharpness: 9.0,
     },
     shake: { maxOffset: 0.35, decay: 6 },
-    sun: { offset: [35, 80, -25], shadowRange: 55, mapSize: 2048 },
+    lights: {
+        hemiIntensity: 0.85,
+        sunIntensity: 2.4,
+    },
+    sun: {
+        offset: [40, 55, -60], // 相对无人机的主光位置（决定太阳方向与阴影长度）
+        shadowRange: IS_MOBILE ? 100 : 140, // 阴影相机半宽（m）
+        mapSize: IS_MOBILE ? 1024 : 2048,
+        shadowFar: 320,
+    },
     rotor: {
         idleSpeed: 25,
         maxSpeed: 160,
@@ -36,12 +60,8 @@ const RENDER_CONFIG = {
         blurStart: 30,
         blurFull: 90,
     },
-    checkpoint: {
-        color: "#00e5ff",
-        emissive: "#00bcd4",
-        emissiveIntensity: 0.9,
-        tube: 0.4,
-    },
+    checkpoint: { tube: 0.4, emissiveIntensity: 1.2 },
+    emissive: { pulse: 0.15, speed: 2.4 }, // 自发光物体的呼吸幅度 / 速度
     droneModelLift: -0.2, // 模型相对物理中心下移，使静止时起落架贴地（包围球半径 0.5）
 };
 
@@ -51,7 +71,7 @@ const RENDER_CONFIG = {
 
 const GEOMETRY_BUILDERS = {
     box: ([w, h, d]) => new THREE.BoxGeometry(w, h, d),
-    cylinder: ([r, h]) => new THREE.CylinderGeometry(r, r, h, 32),
+    cylinder: ([r, h]) => new THREE.CylinderGeometry(r, r, h, 14), // 低分段 + flatShading = 低多边形柱体
     torus: ([R, t]) => new THREE.TorusGeometry(R, t, 16, 64), // 默认位于 XY 平面：竖立、面向 +Z
 };
 
@@ -60,65 +80,7 @@ const TERRAIN_BUILDERS = {
     // 未来：heightmap: buildHeightmapTerrain,
 };
 
-function buildFlatTerrain(terrain, bounds, renderer) {
-    const margin = RENDER_CONFIG.groundMargin;
-    const width = bounds.x[1] - bounds.x[0] + margin * 2;
-    const depth = bounds.z[1] - bounds.z[0] + margin * 2;
-    const texture = createGroundTexture(terrain.color);
-
-    texture.repeat.set(
-        width / RENDER_CONFIG.groundTileSize,
-        depth / RENDER_CONFIG.groundTileSize,
-    );
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-
-    const mesh = new THREE.Mesh(
-        new THREE.PlaneGeometry(width, depth),
-        new THREE.MeshStandardMaterial({
-            map: texture,
-            roughness: 1,
-            metalness: 0,
-        }),
-    );
-
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(
-        (bounds.x[0] + bounds.x[1]) / 2,
-        0,
-        (bounds.z[0] + bounds.z[1]) / 2,
-    );
-    mesh.receiveShadow = true;
-
-    return mesh;
-}
-
-/** 以地形颜色为底生成带细微噪点和网格线的纹理，提供速度感参照 */
-function createGroundTexture(baseColor) {
-    const size    = 256;
-    const canvas  = document.createElement("canvas");
-    canvas.width  = canvas.height = size;
-    const ctx     = canvas.getContext("2d");
-    ctx.fillStyle = baseColor;
-    ctx.fillRect(0, 0, size, size);
-
-    for (let i = 0; i < 1400; i++) {
-        const light = Math.random() < 0.5;
-        ctx.fillStyle = light ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)";
-        const s = 2 + Math.random() * 5;
-        ctx.fillRect(Math.random() * size, Math.random() * size, s, s);
-    }
-
-    ctx.strokeStyle = "rgba(0,0,0,0.16)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, size, size);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-
-    return tex;
-}
-
-function createBoundsOutline(bounds, getGroundHeight) {
+function createBoundsOutline(bounds, getGroundHeight, look) {
     const [x0, x1] = bounds.x;
     const [z0, z1] = bounds.z;
     const pts = [
@@ -131,26 +93,29 @@ function createBoundsOutline(bounds, getGroundHeight) {
     return new THREE.LineLoop(
         new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineBasicMaterial({
-            color: RENDER_CONFIG.boundsLineColor,
+            color: look.colors.accent,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.55,
         }),
     );
 }
 
-function buildMapObject(obj) {
+function buildMapObject(obj, emissives) {
     const builder = GEOMETRY_BUILDERS[obj.type];
     if (!builder)
         throw new Error(`渲染器不支持的物体类型：${obj.type}`);
 
-    const mesh = new THREE.Mesh(
-        builder(obj.size),
-        new THREE.MeshStandardMaterial({
-            color: obj.color,
-            roughness: 0.85,
-            metalness: 0.05,
-        }),
-    );
+    const material = createStandardMaterial(obj.color, {
+        roughness: obj.roughness ?? 0.85,
+        metalness: obj.metalness ?? 0,
+        emissive: obj.emissive,
+        emissiveIntensity: obj.emissiveIntensity,
+    });
+
+    if (obj.emissive)
+        emissives.push({ material, base: obj.emissiveIntensity });
+
+    const mesh = new THREE.Mesh(builder(obj.size), material);
 
     mesh.position.set(obj.position.x, obj.position.y, obj.position.z);
     mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z); // XYZ 顺序，与解析器 AABB 计算一致
@@ -160,16 +125,18 @@ function buildMapObject(obj) {
     return mesh;
 }
 
-function buildCheckpoint(cp) {
+function buildCheckpoint(cp, look) {
     const C = RENDER_CONFIG.checkpoint;
+    const color = look.colors.checkpoint;
     const mesh = new THREE.Mesh(
         new THREE.TorusGeometry(cp.radius, C.tube, 16, 72),
-        new THREE.MeshStandardMaterial({
-            color: C.color,
-            emissive: C.emissive,
-            emissiveIntensity: C.emissiveIntensity,
-            roughness: 0.35,
+        createStandardMaterial(color, {
+            roughness: 0.3,
             metalness: 0.1,
+            emissive: color,
+            emissiveIntensity: C.emissiveIntensity,
+            flatShading: false,
+            envMapIntensity: 0.6,
         }),
     );
     mesh.position.set(cp.position.x, cp.position.y, cp.position.z);
@@ -192,6 +159,7 @@ function createDroneModel() {
             color,
             roughness: 0.5,
             metalness: 0.35,
+            envMapIntensity: 0.6,
             ...extra,
         });
     const add = (geometry, material, x, y, z, parent = model) => {
@@ -328,7 +296,7 @@ export class Engine {
      */
     constructor(container, { getGroundHeight = () => 0 } = {}) {
         this.container = container;
-        this.getGroundHeight = getGroundHeight;
+        this.getGroundHeight = getGroundHeight; // 物理地面高度（flat = 0）
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(
@@ -337,17 +305,14 @@ export class Engine {
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = RENDER_CONFIG.exposure;
         container.appendChild(renderer.domElement);
         this.renderer = renderer;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(RENDER_CONFIG.sky);
-        scene.fog = new THREE.Fog(
-            RENDER_CONFIG.sky,
-            RENDER_CONFIG.fog.near,
-            RENDER_CONFIG.fog.far,
-        );
-
+        scene.background = new THREE.Color();
+        scene.fog = new THREE.FogExp2(0xffffff, RENDER_CONFIG.fog.density);
         this.scene = scene;
 
         const C = RENDER_CONFIG.camera;
@@ -358,9 +323,17 @@ export class Engine {
             C.far,
         );
 
-        scene.add(new THREE.HemisphereLight("#dcefff", "#4b5a3c", 1.3));
-        const sun = new THREE.DirectionalLight("#fff3df", 2.4);
+        // 天空球：跟随相机，颜色由地图色板决定
+        this.sky = createSky();
+        scene.add(this.sky);
+
+        // 光照：半球光（天空色 / 地面色）+ 主方向光（阴影）
+        const L = RENDER_CONFIG.lights;
+        this.hemi = new THREE.HemisphereLight("#ffffff", "#000000", L.hemiIntensity);
+        scene.add(this.hemi);
+
         const S = RENDER_CONFIG.sun;
+        const sun = new THREE.DirectionalLight("#ffffff", L.sunIntensity);
         sun.castShadow = true;
         sun.shadow.mapSize.set(S.mapSize, S.mapSize);
         Object.assign(sun.shadow.camera, {
@@ -369,16 +342,32 @@ export class Engine {
             top: S.shadowRange,
             bottom: -S.shadowRange,
             near: 1,
-            far: 300,
+            far: S.shadowFar,
         });
         sun.shadow.bias = -0.0004;
         sun.shadow.normalBias = 0.03;
         scene.add(sun, sun.target);
         this.sun = sun;
+        this._sunDirection = new THREE.Vector3(...S.offset).normalize();
+        // 阴影相机的固定朝向（只取决于光的方向），用于把光源位置对齐到阴影纹素网格
+        this._lightRotation = new THREE.Matrix4().lookAt(
+            new THREE.Vector3(...S.offset),
+            new THREE.Vector3(),
+            new THREE.Vector3(0, 1, 0),
+        );
+        this._lightInverse = this._lightRotation.clone().invert();
+        this._lightPos = new THREE.Vector3();
+        this._lightLocal = new THREE.Vector3();
 
         this.mapRoot = new THREE.Group();
         scene.add(this.mapRoot);
         this.checkpoints = [];
+        this.emissives = [];
+        this.decorations = null;
+        this.terrainHeight = null;
+        this.look = createLook(null);
+        this.envTarget = null;
+        this._applyLook(this.look, null);
 
         this.drone = createDroneModel();
         scene.add(this.drone.root);
@@ -397,6 +386,12 @@ export class Engine {
         window.addEventListener("resize", this._onResize);
     }
 
+    /** 视觉地面高度：物理地面与地形起伏取较大值（相机避让、边界线贴地用） */
+    groundHeight(x, z) {
+        const relief = this.terrainHeight ? this.terrainHeight(x, z) : 0;
+        return Math.max(this.getGroundHeight(x, z), relief);
+    }
+
     /** 由 MapData 生成整个场景（地图元素全部来自数据；切换地图时先释放旧场景资源） */
     buildMap(mapData) {
         const terrainBuilder = TERRAIN_BUILDERS[mapData.terrain.type];
@@ -406,20 +401,36 @@ export class Engine {
         // 校验通过后再释放旧场景，避免新地图不可用时把旧场景也毁掉
         this._disposeMap();
         this.checkpoints = [];
+        this.emissives = [];
+
+        const ctx = {
+            renderer: this.renderer,
+            layout: createLayout(mapData),
+            bounds: mapData.meta.bounds,
+            look: createLook(mapData.meta.palette),
+            isMobile: IS_MOBILE,
+        };
+        this._applyLook(ctx.look, mapData.meta.fogDensity);
+
+        const terrain = terrainBuilder(mapData.terrain, mapData.meta.bounds, ctx);
+        this.mapRoot.add(terrain.group);
+        this.terrainHeight = terrain.heightAt;
+
+        this.decorations = buildDecorations(mapData.decorations, {
+            ...ctx,
+            heightAt: terrain.heightAt,
+        });
+        this.mapRoot.add(this.decorations.group);
 
         this.mapRoot.add(
-            terrainBuilder(mapData.terrain, mapData.meta.bounds, this.renderer),
-        );
-
-        this.mapRoot.add(
-            createBoundsOutline(mapData.meta.bounds, this.getGroundHeight),
+            createBoundsOutline(mapData.meta.bounds, (x, z) => this.groundHeight(x, z), ctx.look),
         );
 
         for (const obj of mapData.objects)
-            this.mapRoot.add(buildMapObject(obj));
+            this.mapRoot.add(buildMapObject(obj, this.emissives));
 
         for (const cp of mapData.checkpoints) {
-            const ring = buildCheckpoint(cp);
+            const ring = buildCheckpoint(cp, ctx.look);
             this.checkpoints.push(ring);
             this.mapRoot.add(ring);
         }
@@ -429,6 +440,28 @@ export class Engine {
     _disposeMap() {
         disposeObject3D(this.mapRoot);
         this.mapRoot.clear();
+        this.decorations = null;
+        this.terrainHeight = null;
+    }
+
+    /** 把色板 look 应用到天空 / 雾 / 灯光，并重新烘焙环境反射 */
+    _applyLook(look, fogDensity) {
+        this.look = look;
+        const c = look.colors;
+
+        this.scene.background.copy(c.skyHorizon);
+        this.scene.fog.color.copy(c.fog);
+        this.scene.fog.density = fogDensity ?? RENDER_CONFIG.fog.density;
+
+        this.sun.color.copy(c.sun);
+        this.hemi.color.copy(c.hemiSky);
+        this.hemi.groundColor.copy(c.hemiGround);
+        applySkyLook(this.sky, look, this._sunDirection);
+
+        if (this.envTarget)
+            this.envTarget.dispose();
+        this.envTarget = renderEnvironment(this.renderer, this.sky);
+        this.scene.environment = this.envTarget.texture;
     }
 
     /** 相机立即对齐到无人机后方（初始化 / R 重置） */
@@ -477,6 +510,10 @@ export class Engine {
         this._updateCamera(pos, yaw, dt);
         this._updateSun(pos);
         this._updateCheckpoints();
+        this._updateEmissives();
+        this.decorations?.update(dt);
+
+        this.sky.position.copy(this.camera.position);
 
         this.renderer.render(this.scene, this.camera);
     }
@@ -517,8 +554,7 @@ export class Engine {
             pos.y + C.height,
             pos.z - fz * C.distance,
         );
-        const minY =
-            this.getGroundHeight(outPos.x, outPos.z) + C.minHeightAboveGround;
+        const minY = this.groundHeight(outPos.x, outPos.z) + C.minHeightAboveGround;
 
         if (outPos.y < minY)
             outPos.y = minY;
@@ -576,10 +612,30 @@ export class Engine {
         }
     }
 
+    /**
+     * 主光跟随无人机。把光源位置在光照空间内对齐到阴影贴图的纹素网格，
+     * 无人机移动时阴影边缘不会因为纹素错位而闪烁。
+     */
     _updateSun(pos) {
-        const o = RENDER_CONFIG.sun.offset;
-        this.sun.position.set(pos.x + o[0], pos.y + o[1], pos.z + o[2]);
-        this.sun.target.position.set(pos.x, pos.y, pos.z);
+        const S = RENDER_CONFIG.sun;
+        const o = S.offset;
+        const local = this._lightLocal;
+        const lightPos = this._lightPos;
+
+        lightPos.set(pos.x + o[0], pos.y + o[1], pos.z + o[2]);
+        local.copy(lightPos).applyMatrix4(this._lightInverse);
+        const texel = (S.shadowRange * 2) / S.mapSize;
+        local.x = Math.round(local.x / texel) * texel;
+        local.y = Math.round(local.y / texel) * texel;
+        lightPos.copy(local).applyMatrix4(this._lightRotation);
+
+        this.sun.position.copy(lightPos);
+        this.sun.target.position.set(
+            lightPos.x - o[0],
+            lightPos.y - o[1],
+            lightPos.z - o[2],
+        );
+        this.sun.target.updateMatrixWorld();
     }
 
     _updateCheckpoints() {
@@ -587,6 +643,16 @@ export class Engine {
         const pulse = base * (0.75 + 0.25 * Math.sin(this.elapsed * 3));
         for (const ring of this.checkpoints)
             ring.material.emissiveIntensity = pulse;
+    }
+
+    /** 地图中带 emissive 的标志物（发光环塔等）缓慢呼吸 */
+    _updateEmissives() {
+        const E = RENDER_CONFIG.emissive;
+        for (let i = 0; i < this.emissives.length; i++) {
+            const e = this.emissives[i];
+            e.material.emissiveIntensity =
+                e.base * (1 - E.pulse + E.pulse * 2 * (0.5 + 0.5 * Math.sin(this.elapsed * E.speed + i)));
+        }
     }
 }
 
